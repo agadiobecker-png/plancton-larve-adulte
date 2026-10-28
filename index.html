@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>De la larve à l'âge adulte | En partenariat avec Éco2Nature</title>
+  <meta name="description" content="Jeu éducatif et interactif sur le méroplancton du littoral de Dieppe. En partenariat avec Éco2Nature.">
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            abyss: '#050510',
+            deepNavy: '#0B132B',
+            waterDark: '#070c1e',
+            electric: '#00f0ff',
+            bioTeal: '#2dd4bf',
+            bioCyan: '#38bdf8',
+            bioPurple: '#c084fc',
+            bioAmber: '#fbbf24',
+            bioCoral: '#fb7185',
+            bioEmerald: '#10b981'
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Google Fonts : Graisses 300 et 400 exclusivement -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400&family=Plus+Jakarta+Sans:wght@300;400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       DIRECTIVE STRICTE : ZÉRO TEXTE EN GRAS SUR TOUTE L'APPLICATION
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      font-weight: 400 !important;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-light, .light-weight {
+      font-weight: 300 !important;
+    }
+
+    body {
+      background-color: #050510;
+      color: #f0fdfa;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Arrière-plan canvas animé (Abysses & Méroplancton bioluminescent) */
+    #canvasBackground {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Verres et surfaces glassmorphism sur fond abyssal */
+    .glass-panel {
+      background: rgba(11, 19, 43, 0.78);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(45, 212, 191, 0.22);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 240, 255, 0.08);
+    }
+
+    .glass-panel-hover {
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-panel-hover:hover {
+      background: rgba(15, 27, 60, 0.9);
+      border-color: rgba(0, 240, 255, 0.65);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 240, 255, 0.3);
+    }
+
+    /* Chambre d'observation larvaire */
+    .larva-chamber {
+      background: #03050c;
+      border: 1.5px solid rgba(0, 240, 255, 0.45);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), inset 0 0 35px rgba(0, 240, 255, 0.2), 0 0 25px rgba(0, 240, 255, 0.25);
+      cursor: grab;
+      transition: all 0.3s ease;
+    }
+    .larva-chamber:active {
+      cursor: grabbing;
+    }
+    .larva-chamber:hover {
+      border-color: #2dd4bf;
+      box-shadow: 0 0 35px rgba(45, 212, 191, 0.5), inset 0 0 40px rgba(45, 212, 191, 0.3);
+      transform: scale(1.02);
+    }
+
+    /* Illustrations SVG pleine largeur */
+    .organism-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    /* Animations d'interaction Drag & Drop / Match */
+    .drag-target-hover {
+      border-color: #2dd4bf !important;
+      background: rgba(45, 212, 191, 0.25) !important;
+      transform: scale(1.04) !important;
+      box-shadow: 0 0 35px rgba(45, 212, 191, 0.6) !important;
+    }
+
+    .matched-success {
+      animation: pulseGlow 0.8s ease-out;
+      border-color: #10b981 !important;
+      background: rgba(16, 185, 129, 0.16) !important;
+      opacity: 0.85;
+    }
+
+    @keyframes pulseGlow {
+      0% { transform: scale(1); box-shadow: 0 0 0 rgba(16, 185, 129, 0.8); }
+      50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(16, 185, 129, 0.7); }
+      100% { transform: scale(1); }
+    }
+
+    .mismatch-shake {
+      animation: softShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+      border-color: #fb7185 !important;
+      background: rgba(251, 113, 133, 0.2) !important;
+    }
+
+    @keyframes softShake {
+      10%, 90% { transform: translate3d(-3px, 0, 0); }
+      20%, 80% { transform: translate3d(5px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-5px, 0, 0); }
+      40%, 60% { transform: translate3d(5px, 0, 0); }
+    }
+
+    /* Modal overlay */
+    .modal-backdrop {
+      background: rgba(4, 9, 20, 0.88);
+      backdrop-filter: blur(14px);
+    }
+  </style>
+</head>
+<body class="bg-abyss text-slate-100 min-h-screen relative overflow-x-hidden">
+
+  <!-- Arrière-plan Canvas : Abysses & Bioluminescence -->
+  <canvas id="canvasBackground"></canvas>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col gap-6">
+
+    <!-- ====================================================================
+         EN-TÊTE PRINCIPAL : TITRE & PARTENARIAT ÉCO2NATURE
+         ==================================================================== -->
+    <header class="glass-panel rounded-2xl p-5 sm:p-6 flex flex-col gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        
+        <div class="flex flex-col gap-1">
+          <h1 class="text-2xl sm:text-3xl tracking-tight text-white flex items-center gap-3">
+            <span class="text-bioTeal text-2xl">&#8767;</span>
+            <span>De la larve à l'âge adulte</span>
+          </h1>
+          <div class="inline-flex items-center gap-2 text-sm text-bioTeal bg-bioTeal/10 border border-bioTeal/30 px-3 py-1 rounded-full w-fit font-light">
+            <svg class="w-4 h-4 fill-current text-bioTeal" viewBox="0 0 24 24">
+              <path d="M12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2ZM11 19.93C7.05 19.44 4 16.08 4 12C4 11.38 4.08 10.79 4.21 10.21L9 15V16C9 17.1 9.9 18 11 18V19.93ZM17.9 17.39C17.64 16.58 16.9 16 16 16H15V13C15 12.45 14.55 12 14 12H8V10H10C10.55 10 11 9.55 11 9V7H13C14.1 7 15 6.1 15 5V4.59C17.93 5.78 20 8.65 20 12C20 14.08 19.2 15.97 17.9 17.39Z"/>
+            </svg>
+            <span>En partenariat avec Éco2Nature</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+          <button id="soundToggleBtn" class="px-4 py-2 rounded-full border border-bioTeal/30 bg-bioTeal/10 text-slate-200 text-sm hover:bg-bioTeal/20 hover:text-white transition flex items-center gap-2" title="Activer ou couper l'ambiance sonore Web Audio">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <span>Ambiance marine</span>
+          </button>
+
+          <button id="restartBtn" class="px-4 py-2 rounded-full border border-white/10 bg-white/5 text-slate-300 text-sm hover:bg-white/10 hover:text-white transition flex items-center gap-2" title="Recommencer l'aventure">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+            <span>Réinitialiser</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Onglets de navigation -->
+      <nav class="flex gap-2 border-t border-white/10 pt-3 flex-wrap">
+        <button id="tabGameBtn" class="px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 bg-bioTeal/15 text-bioTeal border border-bioTeal/30">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <span>Jeu : Qui appartient à qui ?</span>
+        </button>
+
+        <button id="tabCodexBtn" class="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <span>Herbier & Fiches Marines (8 espèces)</span>
+        </button>
+
+        <button id="tabGuideBtn" class="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+          <span>Guide de l'Estran de Dieppe</span>
+        </button>
+      </nav>
+    </header>
+
+    <!-- ====================================================================
+         VUE 1 : JEU INTERACTIF D'ASSOCIATION
+         ==================================================================== -->
+    <main id="gameView" class="flex flex-col gap-6">
+
+      <!-- Barre de progression -->
+      <section class="glass-panel rounded-xl px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <span class="text-sm text-bioCyan">Espèces de la Manche identifiées :</span>
+          <span id="progressCounter" class="text-base text-white bg-white/10 px-3 py-0.5 rounded-full font-light">0 / 8</span>
+        </div>
+        <div id="progressDots" class="flex items-center gap-2">
+          <!-- Injecté dynamiquement -->
+        </div>
+      </section>
+
+      <!-- Arène de jeu principale -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Colonne gauche : Larve pélagique vedette (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col gap-5 sticky top-5">
+          <div id="larvaCardContainer">
+            <!-- Rempli par JavaScript -->
+          </div>
+
+          <!-- Panneau d'indice pédagogique Éco2Nature -->
+          <div class="glass-panel rounded-xl p-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 text-bioAmber text-sm">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M9 18h6"></path>
+                  <path d="M10 22h4"></path>
+                  <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"></path>
+                </svg>
+                <span>Indice Pédagogique Éco2Nature</span>
+              </div>
+              <button id="hintBtn" class="px-3 py-1 text-xs rounded-full bg-bioAmber/15 border border-bioAmber/30 text-bioAmber hover:bg-bioAmber/25 transition">
+                Afficher l'indice
+              </button>
+            </div>
+            <p id="hintContent" class="text-xs text-amber-200 bg-amber-500/10 border-l-2 border-bioAmber p-3 rounded-r-md hidden leading-relaxed font-light">
+              <!-- Rempli dynamiquement -->
+            </p>
+          </div>
+        </div>
+
+        <!-- Colonne droite : Grille des adultes de la Côte d'Albâtre (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col gap-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-xl text-white">Formes adultes du littoral dieppois</h2>
+              <p class="text-xs text-slate-400">Glissez la larve sur son adulte ou cliquez directement sur la carte correspondante</p>
+            </div>
+          </div>
+
+          <div id="adultsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- 8 cartes adultes avec illustrations SVG générées en JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- ====================================================================
+         VUE 2 : HERBIER & CARNET DES 8 ESPÈCES
+         ==================================================================== -->
+    <section id="codexView" class="hidden flex-col gap-6">
+      <div class="glass-panel rounded-2xl p-6 flex flex-col gap-3">
+        <h2 class="text-2xl text-white">Carnet d'Observation du Méroplancton de Dieppe</h2>
+        <p class="text-sm text-slate-300 leading-relaxed font-light">
+          Retrouvez l'intégralité des 8 espèces emblématiques de la Côte d'Albâtre étudiées par Éco2Nature. Vous pouvez consulter à tout moment les fiches détaillées présentant la métamorphose complète, l'habitat sur l'estran rocheux ou sablo-vaseux, et l'impact écologique de chaque créature.
+        </p>
+      </div>
+
+      <div id="codexGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Rempli dynamiquement en JS -->
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VUE 3 : GUIDE DE L'ESTRAN DE DIEPPE & DU MÉROPLANCTON
+         ==================================================================== -->
+    <section id="guideView" class="hidden flex-col gap-6">
+      <div class="glass-panel rounded-2xl p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <div class="lg:col-span-8 flex flex-col gap-3">
+          <span class="text-xs uppercase tracking-wider text-bioTeal bg-bioTeal/10 border border-bioTeal/30 px-3 py-1 rounded-full w-fit font-light">
+            Écologie Côtière de la Manche
+          </span>
+          <h2 class="text-2xl sm:text-3xl text-white">Le Méroplancton de la Côte d'Albâtre</h2>
+          <p class="text-sm text-slate-300 leading-relaxed font-light">
+            Le terme méroplancton désigne la fraction du plancton marin constituée d'organismes qui n'y passent qu'une période transitoire de leur existence, principalement sous forme d'œufs et de larves. Contrairement à l'holoplancton qui flotte toute sa vie au gré des flots, le méroplancton est voué à quitter la colonne d'eau pour coloniser le benthos (le fond rocheux ou sableux) ou devenir des nageurs vigoureux.
+          </p>
+          <p class="text-sm text-slate-300 leading-relaxed font-light">
+            À Dieppe, la rencontre des marées puissantes (marnage atteignant près de 10 mètres) et des falaises de craie du Crétacé crée un milieu unique au monde. Les éboulis rocheux, les tapis d'algues brunes et les chenaux sableux offrent aux jeunes larves un gîte indispensable pour s'ancrer, s'abriter et prospérer.
+          </p>
+        </div>
+
+        <div class="lg:col-span-4 bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col items-center gap-2">
+          <svg viewBox="0 0 320 200" class="w-full max-w-xs" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="chalkGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="60%" stop-color="#cbd5e1"/>
+                <stop offset="100%" stop-color="#64748b"/>
+              </linearGradient>
+            </defs>
+            <!-- Falaise de craie -->
+            <path d="M20,20 L160,20 L155,160 L20,160 Z" fill="url(#chalkGrad)"/>
+            <!-- Silex noir -->
+            <line x1="20" y1="60" x2="158" y2="60" stroke="#0f172a" stroke-width="4" stroke-dasharray="8,4"/>
+            <line x1="20" y1="100" x2="156" y2="100" stroke="#0f172a" stroke-width="5" stroke-dasharray="12,5"/>
+            <!-- Pelouse sommitale -->
+            <path d="M15,20 Q80,12 165,20 L165,28 L15,28 Z" fill="#22c55e"/>
+            <!-- Mer de la Manche -->
+            <path d="M110,130 Q160,115 220,135 Q260,120 310,132 L310,190 L110,190 Z" fill="#0284c7" opacity="0.7"/>
+            <path d="M110,130 Q160,115 220,135 Q260,120 310,132" fill="none" stroke="#e0f2fe" stroke-width="2"/>
+            <circle cx="270" cy="45" r="14" fill="#fef08a" opacity="0.8"/>
+          </svg>
+          <span class="text-xs text-slate-400 text-center font-light">Falaise de Dieppe : craie & bancs de silex noir</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="glass-panel rounded-xl p-5 flex flex-col gap-2">
+          <h3 class="text-base text-bioCyan flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span>L'Étage Médiolittoral</span>
+          </h3>
+          <p class="text-xs text-slate-300 leading-relaxed font-light">
+            Battu deux fois par jour par les marées de la Manche. C'est le domaine des balanes encroûtantes, des bigorneaux et des tomates de mer qui se rétractent en boules protectrices dès que la mer descend.
+          </p>
+        </div>
+
+        <div class="glass-panel rounded-xl p-5 flex flex-col gap-2">
+          <h3 class="text-base text-bioCyan flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M8 12h8"></path>
+            </svg>
+            <span>L'Étage Infralittoral</span>
+          </h3>
+          <p class="text-xs text-slate-300 leading-relaxed font-light">
+            Rarement émergé, sauf aux grandes marées d'équinoxe. Il abrite les forêts de laminaires géantes où prospèrent les oursins verts, les crabes cuirassés et les étoiles de mer prédatrices.
+          </p>
+        </div>
+
+        <div class="glass-panel rounded-xl p-5 flex flex-col gap-2">
+          <h3 class="text-base text-bioCyan flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M2 12h20M2 12l5-5m-5 5l5 5"></path>
+            </svg>
+            <span>Plages & Vasières</span>
+          </h3>
+          <p class="text-xs text-slate-300 leading-relaxed font-light">
+            De Pourville à Puys, les sédiments fins abritent les arénicoles fouisseurs aérant le sable en profondeur, tandis que les jeunes turbots chassent à l'affût, mimétiques des galets de silex.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         PIED DE PAGE
+         ==================================================================== -->
+    <footer class="glass-panel rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+      <div class="flex items-center gap-2">
+        <span>Application pédagogique grand public</span>
+        <span>&bull;</span>
+        <span class="text-bioTeal">En partenariat avec Éco2Nature</span>
+      </div>
+      <div class="text-slate-500 font-light">
+        <span>Littoral de Dieppe & Côte d'Albâtre &bull; Normandie</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ====================================================================
+       MODAL 1 : FICHE PÉDAGOGIQUE ÉCO2NATURE (APRÈS SUCCÈS)
+       ==================================================================== -->
+  <div id="pedagogicalModal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition duration-300">
+    <div class="bg-[#070e22] border border-bioTeal/40 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col transform translate-y-4 transition duration-300">
+      
+      <!-- En-tête de la fiche -->
+      <div class="p-5 sm:p-6 border-b border-white/10 flex items-start justify-between gap-4">
+        <div class="flex flex-col gap-1">
+          <span class="text-xs text-bioTeal bg-bioTeal/10 border border-bioTeal/30 px-3 py-0.5 rounded-full w-fit font-light">
+            Fiche Pédagogique Éco2Nature
+          </span>
+          <h2 id="sheetTitle" class="text-xl sm:text-2xl text-white">Nom de l'Espèce</h2>
+          <p id="sheetScientific" class="text-xs sm:text-sm text-bioCyan italic font-light">Nom scientifique</p>
+        </div>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full w-8 h-8 flex items-center justify-center text-lg transition">
+          &times;
+        </button>
+      </div>
+
+      <!-- Corps de la fiche -->
+      <div class="p-5 sm:p-6 flex flex-col gap-6">
+        
+        <!-- Comparateur côte-à-côte Larve vs Adulte -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-4 bg-black/40 p-4 rounded-xl border border-white/5">
+          <div class="flex flex-col items-center gap-2 text-center">
+            <div id="modalLarvaThumb" class="w-full max-w-[190px] h-[130px] rounded-lg overflow-hidden border border-white/10 bg-black"></div>
+            <span id="modalLarvaTitle" class="text-xs text-white">Larve Planctonique</span>
+            <span class="text-[11px] text-bioTeal font-light">Pélagique &bull; Mobile en pleine eau</span>
+          </div>
+
+          <div class="flex flex-col items-center gap-1 text-bioTeal text-xs font-light">
+            <svg class="w-6 h-6 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+            <span>Métamorphose</span>
+          </div>
+
+          <div class="flex flex-col items-center gap-2 text-center">
+            <div id="modalAdultThumb" class="w-full max-w-[190px] h-[130px] rounded-lg overflow-hidden border border-white/10 bg-black"></div>
+            <span id="modalAdultTitle" class="text-xs text-white">Forme Adulte</span>
+            <span class="text-[11px] text-bioTeal font-light">Benthique &bull; Littoral de Dieppe</span>
+          </div>
+        </div>
+
+        <!-- 4 Blocs pédagogiques synthétiques -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="bg-white/[0.03] border border-white/10 p-4 rounded-xl flex flex-col gap-2">
+            <h3 class="text-sm text-bioTeal flex items-center gap-2">
+              <svg class="w-4 h-4 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"></path>
+              </svg>
+              <span>La Métamorphose Extraordinaire</span>
+            </h3>
+            <p id="textMetamorphosis" class="text-xs text-slate-300 leading-relaxed font-light"></p>
+          </div>
+
+          <div class="bg-white/[0.03] border border-white/10 p-4 rounded-xl flex flex-col gap-2">
+            <h3 class="text-sm text-bioTeal flex items-center gap-2">
+              <svg class="w-4 h-4 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <span>Habitat Local à Dieppe</span>
+            </h3>
+            <p id="textDieppeHabitat" class="text-xs text-slate-300 leading-relaxed font-light"></p>
+          </div>
+
+          <div class="bg-white/[0.03] border border-white/10 p-4 rounded-xl flex flex-col gap-2">
+            <h3 class="text-sm text-bioTeal flex items-center gap-2">
+              <svg class="w-4 h-4 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              <span>Rôle Écologique & Biodiversité</span>
+            </h3>
+            <p id="textEcologicalRole" class="text-xs text-slate-300 leading-relaxed font-light"></p>
+          </div>
+
+          <div class="bg-white/[0.03] border border-white/10 p-4 rounded-xl flex flex-col gap-2">
+            <h3 class="text-sm text-bioTeal flex items-center gap-2">
+              <svg class="w-4 h-4 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <span>Le Saviez-vous ? (Note Éco2Nature)</span>
+            </h3>
+            <p id="textFunFact" class="text-xs text-slate-300 leading-relaxed font-light"></p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Pied de modal -->
+      <div class="p-4 sm:p-5 border-t border-white/10 flex justify-end">
+        <button id="modalNextBtn" class="bg-bioTeal hover:bg-[#5eead4] text-slate-900 px-5 py-2.5 rounded-full text-sm flex items-center gap-2 transition shadow-lg shadow-bioTeal/20">
+          <span>Espèce suivante</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 2 : VICTOIRE ET CERTIFICAT NATURALISTE ÉCO2NATURE
+       ==================================================================== -->
+  <div id="victoryModal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition duration-300">
+    <div class="bg-[#070e22] border border-bioTeal/40 rounded-2xl max-w-xl w-full p-6 sm:p-8 text-center flex flex-col items-center gap-4 shadow-2xl">
+      <svg class="w-16 h-16 text-bioTeal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"></path>
+        <path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"></path>
+        <path d="M6 3h12a2 2 0 0 1 2 2v6a7 7 0 0 1-7 7v3"></path>
+        <path d="M9 21h6"></path>
+      </svg>
+      <h2 class="text-2xl sm:text-3xl text-white">Félicitations, Naturaliste !</h2>
+      <p class="text-sm text-bioTeal font-light">Vous avez identifié les 8 merveilles du méroplancton de Dieppe</p>
+      <p class="text-xs sm:text-sm text-slate-300 leading-relaxed font-light">
+        Grâce à votre sagacité, vous avez reconstitué le pont fascinant qui relie les larves planctoniques microscopiques aux animaux emblématiques des falaises de craie et de l'estran de la Côte d'Albâtre. Toute l'équipe d'Éco2Nature vous félicite pour votre engagement envers la préservation de la biodiversité marine !
+      </p>
+      <div class="flex gap-3 flex-wrap justify-center pt-2">
+        <button id="codexVictoryBtn" class="px-5 py-2.5 rounded-full bg-bioTeal/20 border border-bioTeal/40 text-bioTeal text-xs sm:text-sm hover:bg-bioTeal/30 transition flex items-center gap-2">
+          <span>Explorer l'herbier complet</span>
+        </button>
+        <button id="replayVictoryBtn" class="px-5 py-2.5 rounded-full bg-bioTeal text-slate-900 text-xs sm:text-sm hover:bg-[#5eead4] transition flex items-center gap-2">
+          <span>Rejouer l'aventure</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       DONNÉES, AUDIO & LOGIQUE DU JEU (TOUT-EN-UN)
+       ==================================================================== -->
+  <script>
+    // =========================================================================
+    // 1. DONNÉES PÉDAGOGIQUES DES 8 ESPÈCES DE DIEPPE & ÉCO2NATURE
+    // =========================================================================
+    const SPECIES_DATA = [
+      {
+        id: "crabe",
+        commonName: "Crabe de l'estran (Crabe enragé / Tourteau)",
+        scientificName: "Carcinus maenas",
+        family: "Décapodes Brachyoures",
+        visualClue: "Longue épine dorsale verticale & grands yeux composés",
+        larva: {
+          stageName: "Larve Zoé puis Mégalope",
+          description: "Minuscule créature pélagique translucide dotée d'une très haute épine dorsale verticale et d'un rostre pointé vers le bas pour stabiliser sa nage et échapper aux prédateurs.",
+          features: ["Haute épine dorsale", "Rostre ventral allongé", "Grands yeux composés", "Abdomen articulé nageur"],
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="zoeHalo" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.35"/>
+                <stop offset="60%" stop-color="#0284c7" stop-opacity="0.15"/>
+                <stop offset="100%" stop-color="#041829" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="zoeSpineGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#a7f3d0"/><stop offset="40%" stop-color="#2dd4bf"/><stop offset="100%" stop-color="#0f766e"/>
+              </linearGradient>
+              <linearGradient id="zoeBodyGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#99f6e4" stop-opacity="0.9"/><stop offset="60%" stop-color="#14b8a6" stop-opacity="0.75"/><stop offset="100%" stop-color="#0f766e" stop-opacity="0.85"/>
+              </linearGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#041525"/>
+            <circle cx="150" cy="120" r="105" fill="url(#zoeHalo)"/>
+            <circle cx="45" cy="50" r="1.5" fill="#5eead4" opacity="0.6"/>
+            <circle cx="255" cy="80" r="2" fill="#38bdf8" opacity="0.7"/>
+            <path d="M150,95 Q145,45 148,15 Q152,45 154,95 Z" fill="url(#zoeSpineGrad)"/>
+            <line x1="149" y1="18" x2="151" y2="92" stroke="#ffffff" stroke-width="0.8" opacity="0.75"/>
+            <path d="M145,138 Q140,190 138,225 Q144,190 149,138 Z" fill="url(#zoeSpineGrad)"/>
+            <line x1="140" y1="220" x2="146" y2="140" stroke="#ffffff" stroke-width="0.8" opacity="0.7"/>
+            <path d="M130,118 Q90,116 70,110 Q90,123 130,124 Z" fill="url(#zoeSpineGrad)"/>
+            <path d="M170,118 Q210,116 230,110 Q210,123 170,124 Z" fill="url(#zoeSpineGrad)"/>
+            <ellipse cx="150" cy="118" rx="28" ry="24" fill="url(#zoeBodyGrad)" stroke="#5eead4" stroke-width="1.8"/>
+            <ellipse cx="150" cy="116" rx="15" ry="12" fill="#0d9488" fill-opacity="0.85"/>
+            <circle cx="149" cy="114" r="5" fill="#f59e0b" fill-opacity="0.75"/>
+            <circle cx="132" cy="104" r="11" fill="#042f2e" stroke="#2dd4bf" stroke-width="1.5"/>
+            <circle cx="130" cy="101" r="4.5" fill="#14b8a6"/><circle cx="129" cy="99" r="1.8" fill="#ffffff"/>
+            <circle cx="168" cy="104" r="11" fill="#042f2e" stroke="#2dd4bf" stroke-width="1.5"/>
+            <circle cx="166" cy="101" r="4.5" fill="#14b8a6"/><circle cx="165" cy="99" r="1.8" fill="#ffffff"/>
+            <path d="M150,140 C162,158 174,170 190,172 C204,174 212,164 214,152 C214,142 204,136 195,140" fill="none" stroke="#2dd4bf" stroke-width="4.5" stroke-linecap="round"/>
+            <path d="M214,152 L228,145 M214,152 L230,154 M214,152 L226,162" stroke="#99f6e4" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>`
+        },
+        adult: {
+          commonName: "Crabe adulte de l'estran",
+          description: "Crustacé décapode cuirassé aux puissantes pinces broyeuses, arpentant les blocs de craie et de silex tapissés de fucus à marée basse.",
+          habitat: "Estran rocheux sous les falaises de Dieppe, failles de silex et cuvettes d'algues.",
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="chalkRockGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#1e293b"/>
+              </linearGradient>
+              <linearGradient id="crabCarapace" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#448057"/><stop offset="50%" stop-color="#2c5a3b"/><stop offset="100%" stop-color="#183622"/>
+              </linearGradient>
+              <linearGradient id="crabClawGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#ea580c"/><stop offset="100%" stop-color="#431407"/>
+              </linearGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#071b28"/>
+            <path d="M15,190 Q90,165 170,175 Q240,160 285,185 L285,240 L15,240 Z" fill="url(#chalkRockGrad)"/>
+            <path d="M110,130 Q70,115 42,130 Q32,148 26,168" fill="none" stroke="#285637" stroke-width="5.5" stroke-linecap="round"/>
+            <path d="M112,142 Q65,142 45,160 Q38,175 34,192" fill="none" stroke="#234c30" stroke-width="5.5" stroke-linecap="round"/>
+            <path d="M116,155 Q78,165 58,188" fill="none" stroke="#1c3e27" stroke-width="5" stroke-linecap="round"/>
+            <path d="M190,130 Q230,115 258,130 Q268,148 274,168" fill="none" stroke="#285637" stroke-width="5.5" stroke-linecap="round"/>
+            <path d="M188,142 Q235,142 255,160 Q262,175 266,192" fill="none" stroke="#234c30" stroke-width="5.5" stroke-linecap="round"/>
+            <path d="M184,155 Q222,165 242,188" fill="none" stroke="#1c3e27" stroke-width="5" stroke-linecap="round"/>
+            <path d="M115,115 Q80,82 58,88 Q40,94 34,75 Q30,55 52,48 Q72,42 95,72 Q108,90 115,108" fill="url(#crabClawGrad)" stroke="#1a3f2b" stroke-width="2"/>
+            <path d="M185,115 Q220,82 242,88 Q260,94 266,75 Q270,55 248,48 Q228,42 205,72 Q192,90 185,108" fill="url(#crabClawGrad)" stroke="#1a3f2b" stroke-width="2"/>
+            <path d="M102,118 C98,98 120,88 150,88 C180,88 202,98 198,118 C202,132 198,158 178,172 C162,180 138,180 122,172 C102,158 98,132 102,118 Z" fill="url(#crabCarapace)" stroke="#6ee7b7" stroke-width="1.8"/>
+            <circle cx="140" cy="92" r="4" fill="#09130d" stroke="#86efac" stroke-width="1.2"/>
+            <circle cx="160" cy="92" r="4" fill="#09130d" stroke="#86efac" stroke-width="1.2"/>
+          </svg>`
+        },
+        hint: "Recherchez un invertébré marcheur à carapace dure qui se cache sous les blocs de silex de l'estran dieppois lors des marées basses.",
+        pedagogy: {
+          metamorphosis: "Après plusieurs mues planctoniques au stade Zoé, la larve devient Mégalope dotée de pinces minuscules. Elle regagne alors la côte dieppoise, se pose sur les sédiments, replie son abdomen sous son ventre et effectue sa mue benthique définitive pour devenir un jeune crabe marcheur.",
+          dieppeHabitat: "Estran rocheux de Dieppe, falaise d'Aval et platier de Puys. Il s'abrite sous les blocs d'éboulis de craie et les champs d'algues laminaires à marée descendante.",
+          ecologicalRole: "Charognard et prédateur opportuniste d'une grande efficacité, il régule les populations de petits bivalves et nettoie l'estran en recyclant la matière organique.",
+          funFact: "À Dieppe, la force des marées de la Manche le contraint à se caler hermétiquement dans les anfractuosités de la craie pour résister aux rouleaux lors du flot montant."
+        }
+      },
+
+      {
+        id: "oursin",
+        commonName: "Oursin vert (Grimpeur des roches)",
+        scientificName: "Echinus esculentus / Psammechinus miliaris",
+        family: "Échinodermes Échinoïdes",
+        visualClue: "Pyramide de baguettes de calcite & piquants verts à pointes violettes",
+        larva: {
+          stageName: "Larve Échinopluteus",
+          description: "Spectaculaire architecture géométrique vivante : une pyramide translucide soutenue par de longues baguettes de calcite et des bras bordés de cils vibratiles natatoires.",
+          features: ["Squelette de calcite transparent", "Bras ciliés symétriques", "Estomac larvaire central", "Flottaison pélagique"],
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="pluteusHalo" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.4"/>
+                <stop offset="100%" stop-color="#041525" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#041525"/>
+            <circle cx="150" cy="120" r="110" fill="url(#pluteusHalo)"/>
+            <g stroke="#bae6fd" stroke-width="2.5" stroke-linecap="round">
+              <line x1="150" y1="205" x2="85" y2="25"/><line x1="150" y1="205" x2="215" y2="25"/>
+              <line x1="150" y1="185" x2="45" y2="95"/><line x1="150" y1="185" x2="255" y2="95"/>
+            </g>
+            <path d="M150,210 C140,185 80,135 48,95 C44,88 52,88 60,102 C85,135 115,155 102,65 C100,45 112,45 115,65 C125,120 142,140 150,140 C158,140 175,120 185,65 C188,45 200,45 198,65 C185,155 215,135 240,102 C248,88 256,88 252,95 C220,135 160,185 150,210 Z" fill="#0284c7" fill-opacity="0.38" stroke="#38bdf8" stroke-width="2"/>
+            <ellipse cx="150" cy="165" rx="20" ry="25" fill="#38bdf8" fill-opacity="0.5" stroke="#7dd3fc" stroke-width="1.5"/>
+            <circle cx="150" cy="165" r="9" fill="#0284c7" fill-opacity="0.7"/>
+          </svg>`
+        },
+        adult: {
+          commonName: "Oursin vert (Châtaigne de mer)",
+          description: "Globe calcaire hérissé de centaines de piquants verts aux pointes violettes, broutant les algues sur la craie grâce à ses 5 dents puissantes (lanterne d'Aristote).",
+          habitat: "Creux de craie, cuvettes rocheuses profondes et crampons de laminaires au pied des falaises dieppoises.",
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="urchinGlowBody" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#4ade80"/><stop offset="60%" stop-color="#15803d"/><stop offset="100%" stop-color="#052e16"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#071d18"/>
+            <path d="M40,195 C70,165 110,160 150,160 C190,160 230,165 260,195 L280,240 L20,240 Z" fill="#334155" opacity="0.7"/>
+            <g stroke="#22c55e" stroke-width="3" stroke-linecap="round">
+              <line x1="150" y1="120" x2="150" y2="22"/><line x1="150" y1="120" x2="115" y2="30"/><line x1="150" y1="120" x2="185" y2="30"/>
+              <line x1="150" y1="120" x2="80" y2="48"/><line x1="150" y1="120" x2="220" y2="48"/><line x1="150" y1="120" x2="52" y2="78"/>
+              <line x1="150" y1="120" x2="248" y2="78"/><line x1="150" y1="120" x2="40" y2="120"/><line x1="150" y1="120" x2="260" y2="120"/>
+            </g>
+            <g fill="#c084fc">
+              <circle cx="150" cy="22" r="3.5"/><circle cx="115" cy="30" r="3.2"/><circle cx="185" cy="30" r="3.2"/>
+              <circle cx="80" cy="48" r="3.5"/><circle cx="220" cy="48" r="3.5"/><circle cx="52" cy="78" r="3.5"/>
+            </g>
+            <circle cx="150" cy="120" r="62" fill="url(#urchinGlowBody)" stroke="#86efac" stroke-width="2"/>
+          </svg>`
+        },
+        hint: "Pensez à un animal circulaire protégé par des dizaines d'aiguilles protectrices qui broute les rochers au ras de l'eau.",
+        pedagogy: {
+          metamorphosis: "C'est l'une des métamorphoses les plus radicales : la larve Pluteus possède une symétrie bilatérale. Lors de la métamorphose, ses bras se résorbent et un petit oursin à symétrie rayonnante (pentaradiée à 5 branches) se forme à l'intérieur avant d'éclore sur le fond.",
+          dieppeHabitat: "Les dépressions creusées dans la craie du platier de Dieppe et sous les falaises de Pourville.",
+          ecologicalRole: "Grand brouteur herbivore muni d'un appareil masticateur complexe appelé lanterne d'Aristote. Il empêche l'étouffement des roches par les algues filamenteuses.",
+          funFact: "En Manche, l'oursin vert creuse littéralement la craie tendre au fil des ans pour se fabriquer une loge protectrice sur mesure contre les vagues violentes."
+        }
+      },
+
+      {
+        id: "balane",
+        commonName: "Balane crénelée (Dent-de-chien)",
+        scientificName: "Semibalanus balanoides",
+        family: "Crustacés Cirripèdes",
+        visualClue: "Larve cyclope à 3 paires de rames & volcan de craie à éventails plumeux",
+        larva: {
+          stageName: "Larve Nauplius puis Cypris",
+          description: "D'abord Nauplius triangulaire muni d'un œil de cyclope central et de cornes frontales, elle mue en Cypris dotée de ventouses adhésives pour se coller à la craie.",
+          features: ["Œil médian de cyclope", "Cornes frontales triangulaires", "3 paires de pattes natatoires", "Mue en cypris bivalve"],
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="naupHalo" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#fde047" stop-opacity="0.35"/><stop offset="100%" stop-color="#041525" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#041525"/>
+            <circle cx="150" cy="120" r="105" fill="url(#naupHalo)"/>
+            <path d="M150,42 Q215,75 210,135 Q195,185 150,205 Q105,185 90,135 Q85,75 150,42 Z" fill="#fef08a" fill-opacity="0.45" stroke="#facc15" stroke-width="2.2"/>
+            <path d="M110,55 Q80,40 68,48" stroke="#fef08a" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <path d="M190,55 Q220,40 232,48" stroke="#fef08a" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <circle cx="150" cy="80" r="8" fill="#991b1b" stroke="#fef08a" stroke-width="2"/>
+            <circle cx="148" cy="78" r="2.5" fill="#ffffff"/>
+            <path d="M108,110 Q50,115 30,130" stroke="#facc15" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+            <path d="M192,110 Q250,115 270,130" stroke="#facc15" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+          </svg>`
+        },
+        adult: {
+          commonName: "Balane adulte (Crustacé fixé)",
+          description: "Miniature de volcan calcaire scellée à la falaise. Vivant la tête en bas, elle déploie à marée haute ses pattes plumeuses (cirres) pour capturer le plancton.",
+          habitat: "Parois verticales de craie, rochers de l'estran, jetées et coques de bateaux dans le port de Dieppe.",
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="volcanoPlate" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#f8fafc"/><stop offset="60%" stop-color="#cbd5e1"/><stop offset="100%" stop-color="#64748b"/>
+              </linearGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#061a24"/>
+            <path d="M25,200 Q150,185 275,202 L275,240 L25,240 Z" fill="#475569"/>
+            <path d="M85,200 L108,118 L192,118 L218,200 Z" fill="url(#volcanoPlate)" stroke="#f1f5f9" stroke-width="2"/>
+            <line x1="150" y1="118" x2="150" y2="200" stroke="#475569" stroke-width="2"/>
+            <ellipse cx="150" cy="118" rx="42" ry="16" fill="#0f172a" stroke="#f8fafc" stroke-width="2"/>
+            <g stroke="#38bdf8" stroke-width="2.2" fill="none" stroke-linecap="round">
+              <path d="M136,114 Q120,70 102,38 Q94,22 80,12"/>
+              <path d="M144,112 Q135,62 126,30 Q120,16 110,8"/>
+              <path d="M152,112 Q155,58 158,25 Q160,12 152,4"/>
+              <path d="M160,114 Q172,64 182,32 Q188,18 195,10"/>
+            </g>
+          </svg>`
+        },
+        hint: "Ce crustacé immobile colle sa tête à la roche pour la vie et filtre les marées avec ses pattes transformées en éventails plumeux.",
+        pedagogy: {
+          metamorphosis: "Au terme du stade Cypris, la larve sécrète par ses antennules une colle biologique surpuissante, se fixe la tête en bas, perd sa carapace larvaire et sécrète 6 plaques calcaires assemblées en cône protecteur hermétique.",
+          dieppeHabitat: "Colonise par millions les falaises de Dieppe, les tétrapodes brise-lames de la jetée Ouest et les piliers d'estacade portuaire.",
+          ecologicalRole: "Organisme bio-filtreur colossal : des milliards de balanes filtrent quotidiennement les eaux de la Manche, piégeant le phytoplancton et nettoyant la frange côtière.",
+          funFact: "Charles Darwin a consacré plus de huit années de sa vie à étudier la métamorphose extraordinaire des balanes avant de publier sa théorie de l'évolution !"
+        }
+      },
+
+      {
+        id: "arenicole",
+        commonName: "Ver Arénicole (Ver de vase / Ver noir)",
+        scientificName: "Arenicola marina",
+        family: "Annélides Polychètes",
+        visualClue: "Couronnes ciliées & galerie en U sous sable avec tortillons",
+        larva: {
+          stageName: "Larve Nectochète",
+          description: "Minuscule ver pélagique transparent propulsé par des couronnes de cils vibratiles et armé de quelques soies rigides microscopiques avant de s'enfoncer dans le sable.",
+          features: ["Couronnes ciliées natatoires", "Segments transparents", "Ocelles larvaires", "Faisceaux de soies chètes"],
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="nectoHalo" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#fdba74" stop-opacity="0.35"/><stop offset="100%" stop-color="#041525" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#041525"/>
+            <circle cx="150" cy="120" r="105" fill="url(#nectoHalo)"/>
+            <path d="M80,75 C110,55 170,55 205,80 C235,105 225,150 195,175 C165,200 115,195 95,168 C80,145 92,120 115,115" fill="none" stroke="#fed7aa" stroke-width="22" stroke-linecap="round" opacity="0.6"/>
+            <g stroke="#f97316" stroke-width="2.5" opacity="0.85">
+              <line x1="98" y1="72" x2="108" y2="90"/><line x1="128" y1="65" x2="135" y2="85"/>
+              <line x1="162" y1="70" x2="164" y2="92"/><line x1="192" y1="90" x2="182" y2="108"/>
+            </g>
+            <circle cx="78" cy="72" r="4.5" fill="#9a3412"/>
+          </svg>`
+        },
+        adult: {
+          commonName: "Ver Arénicole adulte",
+          description: "Ver fouisseur volumineux vivant dans une galerie en U dans le sable de marée basse. Il signale sa présence par ses célèbres tortillons de sable rejeté.",
+          habitat: "Bancs de sable fin et vasières des plages de Dieppe, Pourville-sur-Mer et Quiberville.",
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="wormBodyGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#b45309"/><stop offset="50%" stop-color="#d97706"/><stop offset="100%" stop-color="#78350f"/>
+              </linearGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#041525"/>
+            <path d="M15,65 Q150,60 285,65 L285,240 L15,240 Z" fill="#854d0e" opacity="0.3"/>
+            <path d="M15,65 Q150,60 285,65" stroke="#facc15" stroke-width="2.5" fill="none"/>
+            <path d="M185,63 Q195,44 210,58 Q222,40 236,54 Q244,46 250,63" fill="none" stroke="#facc15" stroke-width="6" stroke-linecap="round"/>
+            <path d="M90,70 C90,135 85,185 140,195 C195,205 215,160 215,68" fill="none" stroke="#0f172a" stroke-width="26" stroke-linecap="round"/>
+            <path d="M90,85 C90,138 85,178 138,188 C182,196 210,160 210,95" fill="none" stroke="url(#wormBodyGrad)" stroke-width="16" stroke-linecap="round"/>
+            <g stroke="#ef4444" stroke-width="3" stroke-linecap="round">
+              <line x1="80" y1="118" x2="68" y2="114"/><line x1="80" y1="132" x2="66" y2="130"/><line x1="80" y1="146" x2="68" y2="148"/>
+            </g>
+          </svg>`
+        },
+        hint: "Ce ver marin creuse des galeries dans les plages sableuses de la Côte d'Albâtre et laisse des petits monticules tortillés sur le sable.",
+        pedagogy: {
+          metamorphosis: "Après avoir nagé en pleine eau grâce à ses bandes ciliées, la larve nectochète gagne les plages sableuses. Elle s'allonge considérablement, développe une trompe fouisseuse réversible (proboscis) et 13 paires de branchies plumeuses rouge rubis avant de forer sa première galerie.",
+          dieppeHabitat: "Grandes étendues sablo-vaseuses découvertes à basse mer à Dieppe, Pourville et Sainte-Marguerite-sur-Mer.",
+          ecologicalRole: "Agent majeur de la bioturbation : un seul ver arénicole ingère et filtre des dizaines de tonnes de sédiments par hectare chaque année, aérant le sable en profondeur.",
+          funFact: "Son hémoglobine possède une capacité exceptionnelle à fixer l'oxygène (40 fois plus que l'hémoglobine humaine !), activement étudiée pour la recherche médicale."
+        }
+      },
+
+      {
+        id: "turbot",
+        commonName: "Turbot de la Manche",
+        scientificName: "Scophthalmus maximus",
+        family: "Téléostéens Pleuronectiformes",
+        visualClue: "Alevin symétrique pélagique & poisson plat asymétrique aux 2 yeux à gauche",
+        larva: {
+          stageName: "Larve pélagique symétrique",
+          description: "À sa naissance, la larve de turbot ressemble à un poisson classique : elle nage droit verticalement en pleine eau et possède un œil bien placé de chaque côté de la tête !",
+          features: ["Symétrie bilatérale classique", "Un œil sur chaque flanc", "Corps transparent pélagique", "Nageoire continue dorsale/ventrale"],
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="turbotLarvaHalo" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.35"/><stop offset="100%" stop-color="#041525" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#041525"/>
+            <circle cx="150" cy="120" r="105" fill="url(#turbotLarvaHalo)"/>
+            <path d="M75,115 C95,75 190,75 220,105 C235,92 255,85 262,120 C255,155 235,148 220,135 C190,165 95,165 75,125 Z" fill="#cffafe" fill-opacity="0.32" stroke="#67e8f9" stroke-width="1.6"/>
+            <path d="M70,120 C85,95 170,92 220,120 C170,148 85,145 70,120 Z" fill="#22d3ee" fill-opacity="0.55" stroke="#a5f3fc" stroke-width="2.2"/>
+            <circle cx="92" cy="115" r="9" fill="#083344" stroke="#a5f3fc" stroke-width="1.6"/>
+            <circle cx="90" cy="113" r="3.5" fill="#ffffff"/>
+            <ellipse cx="120" cy="126" rx="16" ry="10" fill="#fef08a" fill-opacity="0.55"/>
+          </svg>`
+        },
+        adult: {
+          commonName: "Turbot adulte (Poisson plat)",
+          description: "Formidable poisson plat benthique en losange : son œil droit a migré sur son flanc gauche pour lui permettre de chasser couché sur les fonds sablo-graveleux.",
+          habitat: "Fonds sableux, gravières et bancs de galets sous-marins au large de Dieppe et d'Hautot-sur-Mer.",
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="turbotCamouflage" cx="45%" cy="50%" r="55%">
+                <stop offset="0%" stop-color="#b49a78"/><stop offset="50%" stop-color="#7d6347"/><stop offset="100%" stop-color="#422f1d"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#091b25"/>
+            <ellipse cx="60" cy="205" rx="22" ry="14" fill="#1e293b"/>
+            <ellipse cx="235" cy="210" rx="28" ry="16" fill="#334155"/>
+            <path d="M40,120 Q65,48 145,42 Q225,48 232,112 L260,120 L232,128 Q225,192 145,198 Q65,192 40,120 Z" fill="#5c442c" stroke="#997b5a" stroke-width="2"/>
+            <path d="M48,120 C72,65 150,60 215,120 C150,180 72,175 48,120 Z" fill="url(#turbotCamouflage)" stroke="#b49a78" stroke-width="2.2"/>
+            <circle cx="82" cy="108" r="7" fill="#1c1917" stroke="#fcd34d" stroke-width="2"/>
+            <circle cx="80" cy="106" r="2.8" fill="#fff"/>
+            <circle cx="96" cy="98" r="7" fill="#1c1917" stroke="#fcd34d" stroke-width="2"/>
+            <circle cx="94" cy="96" r="2.8" fill="#fff"/>
+          </svg>`
+        },
+        hint: "Ce poisson commence sa vie en nageant droit comme une sardine, avant qu'un de ses yeux ne traverse sa tête pour devenir un poisson plat couché au fond !",
+        pedagogy: {
+          metamorphosis: "Vers l'âge d'un mois, le crâne de l'alevin se déforme et son œil droit migre au-dessus du front pour rejoindre le côté gauche ! Le poisson perd sa vessie natatoire, commence à nager sur le flanc et plonge pour adopter une vie benthique.",
+          dieppeHabitat: "Bancs sableux et fosses caillouteuses de la Manche entre 10 et 50 mètres de profondeur face aux falaises de Dieppe.",
+          ecologicalRole: "Formidable prédateur camouflé à l'affût : capable d'adapter les teintes de sa peau à la texture exacte du sable et des galets dieppois pour gober les proies.",
+          funFact: "Le turbot est dit sénestre car ses deux yeux se trouvent sur son flanc gauche, contrairement à la sole qui est dextre (yeux sur le flanc droit)."
+        }
+      },
+
+      {
+        id: "bigorneau",
+        commonName: "Bigorneau commun (Vignot)",
+        scientificName: "Littorina littorea",
+        family: "Mollusques Gastéropodes",
+        visualClue: "Lobes ciliés comme des ailes de papillon & coquille conique à opercule",
+        larva: {
+          stageName: "Larve Véligère",
+          description: "Dotée de deux grands lobes ciliés déployés comme des ailes (le velum), elle vole littéralement dans l'eau tout en fabriquant sa coquille enroulée.",
+          features: ["Velum bilobé natatoire", "Couronnes de cils vibratiles", "Protoconque transparente spirale", "Pied avec opercule"],
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="veliHalo" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#f472b6" stop-opacity="0.35"/><stop offset="100%" stop-color="#041525" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#041525"/>
+            <circle cx="150" cy="120" r="105" fill="url(#veliHalo)"/>
+            <path d="M142,105 C115,65 60,60 60,100 C60,132 115,138 142,120 Z" fill="#fbcfe8" fill-opacity="0.5" stroke="#f472b6" stroke-width="2.2"/>
+            <path d="M158,105 C185,65 240,60 240,100 C240,132 185,138 158,120 Z" fill="#fbcfe8" fill-opacity="0.5" stroke="#f472b6" stroke-width="2.2"/>
+            <path d="M138,120 C128,155 136,198 158,202 C180,205 194,175 182,148 C174,128 150,120 138,120 Z" fill="#f9a8d4" fill-opacity="0.65" stroke="#be185d" stroke-width="2.2"/>
+          </svg>`
+        },
+        adult: {
+          commonName: "Bigorneau adulte (Escargot de mer)",
+          description: "Mollusque gastéropode à coquille conique spiralée sombre très solide. Râpeur infatigable d'algues et de lichens sur la craie grâce à sa radula.",
+          habitat: "Étage médiolittoral rocheux, tapis de Fucus spiralis et blocs d'estran sur toute la Côte d'Albâtre.",
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="periwinkleShell" cx="40%" cy="35%" r="65%">
+                <stop offset="0%" stop-color="#475569"/><stop offset="50%" stop-color="#1e293b"/><stop offset="100%" stop-color="#0f172a"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#081c22"/>
+            <path d="M20,185 Q110,140 180,180 Q250,220 285,165 L285,240 L20,240 Z" fill="#2d4a22" opacity="0.75"/>
+            <path d="M55,185 C70,170 170,170 205,190 C220,198 190,214 135,214 C80,214 50,198 55,185 Z" fill="#fed7aa" stroke="#ea580c" stroke-width="2"/>
+            <path d="M65,180 Q42,160 22,150" stroke="#ea580c" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+            <path d="M72,176 Q55,148 45,130" stroke="#ea580c" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+            <path d="M75,178 C65,148 75,110 115,85 C145,68 180,55 198,48 C208,44 216,56 208,68 C198,82 212,112 208,144 C204,172 182,185 142,185 C102,185 80,188 75,178 Z" fill="url(#periwinkleShell)" stroke="#94a3b8" stroke-width="2.2"/>
+            <ellipse cx="106" cy="180" rx="18" ry="10" fill="#78350f" stroke="#b45309" stroke-width="1.5"/>
+          </svg>`
+        },
+        hint: "Ce célèbre gastéropode noir à coquille spiralée broute les algues sur les rochers de Dieppe à marée basse.",
+        pedagogy: {
+          metamorphosis: "Après plusieurs semaines où la larve véligère se nourrissait de micro-algues grâce à son velum, celui-ci est résorbé. Le mollusque tombe sur la roche calcaire, épaissit sa coquille et développe sa radula (langue râpeuse).",
+          dieppeHabitat: "Omniprésent sur les platiers rocheux de Dieppe, de Puys et de Varengeville-sur-Mer.",
+          ecologicalRole: "Brouteur régulateur capital : il nettoie la roche en consommant la pellicule d'algues, libérant de l'espace pour d'autres espèces.",
+          funFact: "En Normandie, le bigorneau est appelé « vignot ». Pour supporter l'émersion à marée basse, il s'enferme hermétiquement derrière son opercule corné."
+        }
+      },
+
+      {
+        id: "etoile",
+        commonName: "Étoile de mer commune",
+        scientificName: "Asterias rubens",
+        family: "Échinodermes Astéroïdes",
+        visualClue: "Ruban de cils sinueux en apesanteur & corps orangé à 5 bras",
+        larva: {
+          stageName: "Larve Bipinnaria puis Brachiolaria",
+          description: "Étrange créature transparente et symétrique entourée d'un ruban sinueux de cils vibratiles qui ondulent continuellement pour la maintenir en flottaison.",
+          features: ["Rubans ciliés ondulants", "Symétrie bilatérale larvaire", "Bras de fixation brachiolaires", "Estomac interne violet"],
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="starHalo" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#c084fc" stop-opacity="0.35"/><stop offset="100%" stop-color="#041525" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#041525"/>
+            <circle cx="150" cy="120" r="105" fill="url(#starHalo)"/>
+            <path d="M150,35 C135,35 118,50 120,78 C100,82 78,94 80,118 C82,138 106,144 115,156 C118,175 110,202 128,215 C142,224 150,205 150,205 C150,205 158,224 172,215 C190,202 182,175 185,156 C194,144 218,138 220,118 C222,94 200,82 180,78 C182,50 165,35 150,35 Z" fill="#e9d5ff" fill-opacity="0.45" stroke="#c084fc" stroke-width="2.2"/>
+            <ellipse cx="150" cy="128" rx="18" ry="24" fill="#a855f7" fill-opacity="0.55" stroke="#f3e8ff" stroke-width="1.5"/>
+            <circle cx="150" cy="128" r="8" fill="#6b21a8"/>
+          </svg>`
+        },
+        adult: {
+          commonName: "Étoile de mer adulte",
+          description: "Prédateur à 5 bras capable d'ouvrir les moules et les huîtres en dévaginant son estomac directement à l'intérieur de la coquille de ses proies.",
+          habitat: "Pied des falaises, platiers rocheux, bancs de moules sauvages et enrochements de Dieppe.",
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="starSkinGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#fb923c"/><stop offset="65%" stop-color="#ea580c"/><stop offset="100%" stop-color="#9a3412"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#081824"/>
+            <ellipse cx="45" cy="205" rx="18" ry="9" fill="#1e1b4b" stroke="#38bdf8" stroke-width="0.8"/>
+            <ellipse cx="260" cy="214" rx="22" ry="11" fill="#172554" stroke="#38bdf8" stroke-width="0.8"/>
+            <path d="M150,22 L168,90 L235,66 L185,118 L222,180 L160,150 L120,212 L124,146 L58,138 L124,98 Z" fill="url(#starSkinGrad)" stroke="#fdba74" stroke-width="2.5" stroke-linejoin="round"/>
+            <circle cx="150" cy="120" r="4" fill="#ffedd5"/>
+            <circle cx="160" cy="110" r="3.5" fill="#fef08a" stroke="#ca8a04" stroke-width="1"/>
+          </svg>`
+        },
+        hint: "Une forme symétrique à 5 branches célèbre, prédatrice redoutable des moules sur les rochers de Dieppe.",
+        pedagogy: {
+          metamorphosis: "La métamorphose est spectaculaire : la larve Brachiolaria se fixe par ses bras antérieurs. L'adulte à 5 bras bourgeonne sur le flanc gauche de la larve tandis que toute l'ancienne structure nageuse se résorbe.",
+          dieppeHabitat: "Estran rocheux de Dieppe, brise-lames et platiers s'étendant vers Pourville et Berneval-le-Grand.",
+          ecologicalRole: "Super-prédateur régulateur : en consommant activement les moules, elle empêche celles-ci d'envahir tout le substrat rocheux.",
+          funFact: "Pour déguster une moule fermée, l'étoile tire inlassablement sur les valves. Dès qu'un interstice d'à peine 0,1 mm s'ouvre, elle dévagine son estomac à l'intérieur !"
+        }
+      },
+
+      {
+        id: "anemone",
+        commonName: "Anémone de mer (Tomate de mer)",
+        scientificName: "Actinia equina",
+        family: "Cnidaires Anthozoaires",
+        visualClue: "Larve planula ovale en toupie & polype rouge rubis aux 200 tentacules",
+        larva: {
+          stageName: "Larve Planula",
+          description: "Minuscule larve ovoïde nageuse entièrement tapissée de cils vibratiles microscopiques, tournoyant gracieusement dans les vagues de Dieppe.",
+          features: ["Corps ovale cilié", "Nage en spirale pélagique", "Pôle antérieur sensoriel", "Endoderme rose translucide"],
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="planulaHalo" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#fb7185" stop-opacity="0.35"/><stop offset="100%" stop-color="#041525" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#041525"/>
+            <circle cx="150" cy="120" r="105" fill="url(#planulaHalo)"/>
+            <path d="M150,45 C180,45 200,105 194,160 C188,195 170,210 150,210 C130,210 112,195 106,160 C100,105 120,45 150,45 Z" fill="#fecdd3" fill-opacity="0.5" stroke="#fb7185" stroke-width="2.2"/>
+            <ellipse cx="150" cy="140" rx="20" ry="40" fill="#f43f5e" fill-opacity="0.55"/>
+            <circle cx="150" cy="128" r="7" fill="#fda4af"/>
+          </svg>`
+        },
+        adult: {
+          commonName: "Tomate de mer (Anémone rouge)",
+          description: "Polype rouge rubis éclatant fixé à la roche. Rétractée en boule luisante à marée basse, elle déploie sous l'eau près de 200 tentacules urticants pour chasser.",
+          habitat: "Failles verticales de la craie, surplombs ombragés et cuvettes d'eau de mer de Dieppe.",
+          svg: `<svg viewBox="0 0 300 240" class="organism-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="anemoneColumn" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#f43f5e"/><stop offset="60%" stop-color="#be123c"/><stop offset="100%" stop-color="#4c0519"/>
+              </linearGradient>
+            </defs>
+            <rect width="300" height="240" rx="12" fill="#071922"/>
+            <path d="M25,205 Q150,195 275,208 L275,240 L25,240 Z" fill="#334155"/>
+            <ellipse cx="60" cy="202" rx="24" ry="16" fill="#be123c" stroke="#f43f5e" stroke-width="1.5"/>
+            <ellipse cx="165" cy="205" rx="72" ry="18" fill="#881337" stroke="#fb7185" stroke-width="2"/>
+            <path d="M102,202 C96,162 112,138 132,130 L198,130 C218,138 234,162 228,202 Z" fill="url(#anemoneColumn)" stroke="#f43f5e" stroke-width="2"/>
+            <ellipse cx="165" cy="130" rx="46" ry="16" fill="#9f1239" stroke="#fda4af" stroke-width="1.5"/>
+            <g stroke="#f43f5e" stroke-width="3.5" fill="none" stroke-linecap="round">
+              <path d="M136,126 Q125,82 118,48"/><path d="M152,122 Q150,72 146,38"/>
+              <path d="M168,122 Q168,70 168,32"/><path d="M182,122 Q190,72 192,38"/>
+              <path d="M194,126 Q210,82 218,48"/>
+            </g>
+          </svg>`
+        },
+        hint: "Ce polype rouge sang ressemble à une petite tomate fermée sur le rocher à marée basse, mais déploie une superbe couronne de tentacules à marée haute.",
+        pedagogy: {
+          metamorphosis: "La larve Planula s'ancre sur la craie par son pôle antérieur grâce à des cellules glandulaires adhésives. Son pôle postérieur s'invagine pour former la cavité digestive et bourgeonner des tentacules armés de nématocystes.",
+          dieppeHabitat: "Particulièrement abondante dans les failles de craie de la falaise d'Aval à Dieppe et sur les rochers de Puys.",
+          ecologicalRole: "Chasseuse d'affût : ses tentacules immobilisent instantanément crevettes et alevins grâce à de microscopiques harpons venimeux.",
+          funFact: "Pour ne pas se dessécher au vent marin normand à marée basse, l'anémone rétracte tous ses tentacules et ressemble à une petite tomate rouge vernie !"
+        }
+      }
+    ];
+
+    // =========================================================================
+    // 2. MOTEUR SONORE WEB AUDIO API (SYNTHÈSE PROCÉDURALE INTÉGRÉE)
+    // =========================================================================
+    class OceanAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.isMuted = false;
+        this.ambientRunning = false;
+        this.masterGain = null;
+        this.ambientGain = null;
+        this.sfxGain = null;
+      }
+
+      init() {
+        if (this.ctx) return;
+        const AudioClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioClass) return;
+        this.ctx = new AudioClass();
+
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(0.7, this.ctx.currentTime);
+        this.masterGain.connect(this.ctx.destination);
+
+        this.ambientGain = this.ctx.createGain();
+        this.ambientGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+        this.ambientGain.connect(this.masterGain);
+
+        this.sfxGain = this.ctx.createGain();
+        this.sfxGain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+        this.sfxGain.connect(this.masterGain);
+      }
+
+      ensureRunning() {
+        this.init();
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      toggleMute() {
+        this.ensureRunning();
+        this.isMuted = !this.isMuted;
+        if (this.masterGain) {
+          this.masterGain.gain.linearRampToValueAtTime(this.isMuted ? 0 : 0.7, this.ctx.currentTime + 0.1);
+        }
+        return this.isMuted;
+      }
+
+      startAmbient() {
+        this.ensureRunning();
+        if (this.ambientRunning || !this.ctx) return;
+        this.ambientRunning = true;
+
+        const bufferSize = this.ctx.sampleRate * 2;
+        const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          output[i] = (b0 + b1 + b2 + white * 0.5) * 0.04;
+        }
+
+        const whiteNoise = this.ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+        whiteNoise.loop = true;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(130, this.ctx.currentTime);
+
+        const lfo = this.ctx.createOscillator();
+        lfo.frequency.setValueAtTime(0.12, this.ctx.currentTime);
+        const lfoGain = this.ctx.createGain();
+        lfoGain.gain.setValueAtTime(70, this.ctx.currentTime);
+        lfo.connect(filter.frequency);
+
+        whiteNoise.connect(filter);
+        filter.connect(this.ambientGain);
+
+        whiteNoise.start();
+        lfo.start();
+
+        this.scheduleBubble();
+      }
+
+      scheduleBubble() {
+        if (!this.ambientRunning) return;
+        const delay = 3500 + Math.random() * 5000;
+        setTimeout(() => {
+          if (this.ambientRunning && !this.isMuted) this.playBubble();
+          this.scheduleBubble();
+        }, delay);
+      }
+
+      playBubble() {
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const baseFreq = 300 + Math.random() * 400;
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 2.2, now + 0.15);
+
+        gain.gain.setValueAtTime(0.01, now);
+        gain.gain.linearRampToValueAtTime(0.05, now + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+        osc.connect(gain);
+        gain.connect(this.ambientGain);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+
+      playPlop() {
+        this.ensureRunning();
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(850, now + 0.08);
+
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(now);
+        osc.stop(now + 0.14);
+      }
+
+      playSuccess() {
+        this.ensureRunning();
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const freqs = [349.23, 440.00, 523.25, 659.25, 783.99];
+
+        freqs.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const st = now + idx * 0.07;
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, st);
+
+          gain.gain.setValueAtTime(0.001, st);
+          gain.gain.linearRampToValueAtTime(0.12, st + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, st + 1.2);
+
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start(st);
+          osc.stop(st + 1.3);
+        });
+      }
+
+      playGentleMismatch() {
+        this.ensureRunning();
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.18);
+
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+
+      playVictory() {
+        this.ensureRunning();
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+        notes.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const st = now + idx * 0.15;
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, st);
+          gain.gain.setValueAtTime(0.001, st);
+          gain.gain.linearRampToValueAtTime(0.15, st + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, st + 1.3);
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start(st);
+          osc.stop(st + 1.4);
+        });
+      }
+    }
+
+    const audio = new OceanAudioEngine();
+
+    // =========================================================================
+    // 3. LOGIQUE APPLICATIVE & INTERACTIVE DU JEU
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      const gameState = {
+        currentIndex: 0,
+        solvedIds: new Set(),
+        activeTab: 'game',
+        audioStarted: false
+      };
+
+      const larvaCardContainer = document.getElementById('larvaCardContainer');
+      const adultsGrid = document.getElementById('adultsGrid');
+      const progressCounter = document.getElementById('progressCounter');
+      const progressDots = document.getElementById('progressDots');
+      const hintBtn = document.getElementById('hintBtn');
+      const hintContent = document.getElementById('hintContent');
+      
+      const tabGameBtn = document.getElementById('tabGameBtn');
+      const tabCodexBtn = document.getElementById('tabCodexBtn');
+      const tabGuideBtn = document.getElementById('tabGuideBtn');
+      const gameView = document.getElementById('gameView');
+      const codexView = document.getElementById('codexView');
+      const guideView = document.getElementById('guideView');
+
+      const soundToggleBtn = document.getElementById('soundToggleBtn');
+      const restartBtn = document.getElementById('restartBtn');
+
+      const pedagogicalModal = document.getElementById('pedagogicalModal');
+      const closeModalBtn = document.getElementById('closeModalBtn');
+      const modalNextBtn = document.getElementById('modalNextBtn');
+      const victoryModal = document.getElementById('victoryModal');
+      const replayVictoryBtn = document.getElementById('replayVictoryBtn');
+      const codexVictoryBtn = document.getElementById('codexVictoryBtn');
+
+      function ensureAudio() {
+        if (!gameState.audioStarted) {
+          audio.startAmbient();
+          gameState.audioStarted = true;
+          updateSoundBtn(false);
+        }
+      }
+
+      function updateSoundBtn(isMuted) {
+        if (isMuted) {
+          soundToggleBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+              <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+            </svg>
+            <span>Son désactivé</span>
+          `;
+          soundToggleBtn.classList.replace('bg-bioTeal/10', 'bg-white/5');
+        } else {
+          soundToggleBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <span>Ambiance marine</span>
+          `;
+          soundToggleBtn.classList.replace('bg-white/5', 'bg-bioTeal/10');
+        }
+      }
+
+      function renderDots() {
+        progressDots.innerHTML = '';
+        SPECIES_DATA.forEach((sp, idx) => {
+          const dot = document.createElement('div');
+          dot.className = 'w-3 h-3 rounded-full border transition-all duration-300';
+          if (gameState.solvedIds.has(sp.id)) {
+            dot.className += ' bg-bioTeal border-bioTeal shadow-[0_0_8px_#2dd4bf]';
+          } else if (idx === gameState.currentIndex) {
+            dot.className += ' bg-bioCyan border-white scale-125 shadow-[0_0_10px_#38bdf8]';
+          } else {
+            dot.className += ' bg-white/20 border-white/30';
+          }
+          progressDots.appendChild(dot);
+        });
+        progressCounter.textContent = `${gameState.solvedIds.size} / ${SPECIES_DATA.length}`;
+      }
+
+      function getCurrentSpecies() {
+        return SPECIES_DATA[gameState.currentIndex];
+      }
+
+      function loadCurrentLarva() {
+        const current = getCurrentSpecies();
+        if (!current) return;
+
+        hintContent.textContent = current.hint;
+        hintContent.classList.add('hidden');
+        hintBtn.textContent = "Afficher l'indice";
+
+        larvaCardContainer.innerHTML = `
+          <div class="glass-panel rounded-2xl p-5 sm:p-6 flex flex-col items-center text-center relative overflow-hidden">
+            <span class="text-xs uppercase tracking-wider text-electric bg-electric/10 border border-electric/30 px-3 py-1 rounded-full mb-3 font-light shadow-[0_0_12px_rgba(0,240,255,0.2)]">
+              Stade Planctonique
+            </span>
+            <div id="larvaDragTarget" draggable="true" class="larva-chamber w-full max-w-sm h-60 rounded-xl flex items-center justify-center p-2 mb-4" title="Faites glisser cette larve vers sa forme adulte">
+              ${current.larva.svg}
+            </div>
+            <h2 class="text-xl sm:text-2xl text-white mb-1">${current.larva.stageName}</h2>
+            <p class="text-xs text-bioCyan italic mb-3 font-light">${current.scientificName} &bull; ${current.family}</p>
+            <p class="text-xs text-slate-200 mb-4 leading-relaxed font-light">${current.larva.description}</p>
+            <div class="flex flex-wrap gap-1.5 justify-center mb-4">
+              ${current.larva.features.map(f => `<span class="text-[11px] text-bioTeal bg-white/5 border border-white/10 px-2.5 py-1 rounded-full font-light">${f}</span>`).join('')}
+            </div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 bg-black/40 p-2.5 rounded-lg w-full text-left font-light">
+              <svg class="w-4 h-4 text-bioTeal shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <span>Glissez cette larve vers son adulte ou cliquez directement sur la bonne fiche adulte</span>
+            </div>
+          </div>
+        `;
+
+        const dragWrapper = document.getElementById('larvaDragTarget');
+        dragWrapper.addEventListener('dragstart', (e) => {
+          ensureAudio();
+          audio.playPlop();
+          e.dataTransfer.setData('text/plain', current.id);
+          e.dataTransfer.effectAllowed = 'copyMove';
+          dragWrapper.style.opacity = '0.6';
+        });
+
+        dragWrapper.addEventListener('dragend', () => {
+          dragWrapper.style.opacity = '1';
+        });
+
+        renderDots();
+      }
+
+      function renderAdultsGrid() {
+        adultsGrid.innerHTML = '';
+        SPECIES_DATA.forEach(sp => {
+          const isSolved = gameState.solvedIds.has(sp.id);
+          const card = document.createElement('div');
+          card.className = `glass-panel glass-panel-hover rounded-xl p-3.5 flex flex-col cursor-pointer outline-none ${isSolved ? 'matched-success' : ''}`;
+          card.dataset.id = sp.id;
+          card.tabIndex = 0;
+
+          card.innerHTML = `
+            <div class="w-full h-44 rounded-lg overflow-hidden border border-white/10 bg-[#04121d] mb-3 flex items-center justify-center">
+              ${sp.adult.svg}
+            </div>
+            <div class="flex flex-col flex-grow">
+              <h3 class="text-base text-white mb-1">${sp.adult.commonName}</h3>
+              <span class="text-[11px] text-bioTeal bg-bioTeal/10 border border-bioTeal/20 px-2 py-0.5 rounded-full w-fit mb-2 font-light">
+                ${sp.visualClue}
+              </span>
+              <p class="text-xs text-slate-400 mb-3 leading-relaxed font-light">${sp.adult.habitat}</p>
+              <span class="text-[11px] px-2.5 py-1 rounded-full w-fit mt-auto font-light ${isSolved ? 'text-bioEmerald bg-bioEmerald/20 border border-bioEmerald/40' : 'text-bioCyan bg-bioCyan/10 border border-bioCyan/20'}">
+                ${isSolved ? '&check; Identifié' : 'À associer'}
+              </span>
+            </div>
+          `;
+
+          // Clic direct
+          card.addEventListener('click', () => {
+            ensureAudio();
+            if (isSolved) {
+              openPedagogy(sp);
+              return;
+            }
+            evaluateAssociation(sp.id, card);
+          });
+
+          // Accessibilité clavier
+          card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              card.click();
+            }
+          });
+
+          // Drag & Drop
+          card.addEventListener('dragover', (e) => {
+            if (isSolved) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            card.classList.add('drag-target-hover');
+          });
+
+          card.addEventListener('dragleave', () => {
+            card.classList.remove('drag-target-hover');
+          });
+
+          card.addEventListener('drop', (e) => {
+            e.preventDefault();
+            card.classList.remove('drag-target-hover');
+            if (isSolved) return;
+            const droppedId = e.dataTransfer.getData('text/plain');
+            evaluateAssociation(sp.id, card, droppedId);
+          });
+
+          adultsGrid.appendChild(card);
+        });
+      }
+
+      function evaluateAssociation(adultId, cardElem, droppedId = null) {
+        const current = getCurrentSpecies();
+        if (!current) return;
+        const sourceId = droppedId || current.id;
+
+        if (sourceId === adultId) {
+          audio.playSuccess();
+          cardElem.classList.add('matched-success');
+          gameState.solvedIds.add(current.id);
+          renderDots();
+
+          setTimeout(() => {
+            openPedagogy(current);
+          }, 350);
+        } else {
+          audio.playGentleMismatch();
+          cardElem.classList.add('mismatch-shake');
+          setTimeout(() => {
+            cardElem.classList.remove('mismatch-shake');
+          }, 500);
+        }
+      }
+
+      function openPedagogy(sp) {
+        document.getElementById('sheetTitle').textContent = sp.commonName;
+        document.getElementById('sheetScientific').textContent = `${sp.scientificName} • ${sp.family}`;
+        document.getElementById('modalLarvaThumb').innerHTML = sp.larva.svg;
+        document.getElementById('modalLarvaTitle').textContent = sp.larva.stageName;
+        document.getElementById('modalAdultThumb').innerHTML = sp.adult.svg;
+        document.getElementById('modalAdultTitle').textContent = sp.adult.commonName;
+
+        document.getElementById('textMetamorphosis').textContent = sp.pedagogy.metamorphosis;
+        document.getElementById('textDieppeHabitat').textContent = sp.pedagogy.dieppeHabitat;
+        document.getElementById('textEcologicalRole').textContent = sp.pedagogy.ecologicalRole;
+        document.getElementById('textFunFact').textContent = sp.pedagogy.funFact;
+
+        if (gameState.solvedIds.size === SPECIES_DATA.length) {
+          modalNextBtn.innerHTML = `<span>Voir le bilan final</span>`;
+        } else {
+          modalNextBtn.innerHTML = `<span>Espèce suivante</span>`;
+        }
+
+        pedagogicalModal.classList.remove('opacity-0', 'pointer-events-none');
+        pedagogicalModal.querySelector('div').classList.remove('translate-y-4');
+      }
+
+      function closePedagogy() {
+        pedagogicalModal.classList.add('opacity-0', 'pointer-events-none');
+        pedagogicalModal.querySelector('div').classList.add('translate-y-4');
+      }
+
+      function nextSpecies() {
+        closePedagogy();
+        if (gameState.solvedIds.size === SPECIES_DATA.length) {
+          setTimeout(() => {
+            audio.playVictory();
+            victoryModal.classList.remove('opacity-0', 'pointer-events-none');
+          }, 300);
+          return;
+        }
+
+        let nextIdx = (gameState.currentIndex + 1) % SPECIES_DATA.length;
+        while (gameState.solvedIds.has(SPECIES_DATA[nextIdx].id)) {
+          nextIdx = (nextIdx + 1) % SPECIES_DATA.length;
+        }
+        gameState.currentIndex = nextIdx;
+        loadCurrentLarva();
+      }
+
+      function renderCodex() {
+        const codexGrid = document.getElementById('codexGrid');
+        codexGrid.innerHTML = '';
+        SPECIES_DATA.forEach(sp => {
+          const card = document.createElement('div');
+          card.className = 'glass-panel rounded-xl p-4 flex flex-col gap-3';
+          card.innerHTML = `
+            <div class="grid grid-cols-2 gap-2 bg-black/40 p-2 rounded-lg border border-white/5">
+              <div class="h-28 rounded overflow-hidden">${sp.larva.svg}</div>
+              <div class="h-28 rounded overflow-hidden">${sp.adult.svg}</div>
+            </div>
+            <div>
+              <h3 class="text-base text-white">${sp.commonName}</h3>
+              <p class="text-xs text-bioCyan italic font-light">${sp.scientificName}</p>
+            </div>
+            <p class="text-xs text-slate-300 font-light leading-relaxed">${sp.pedagogy.dieppeHabitat}</p>
+            <button class="codex-btn px-4 py-2 rounded-full bg-bioTeal/15 border border-bioTeal/30 text-bioTeal text-xs hover:bg-bioTeal/25 transition mt-auto flex items-center justify-center gap-2">
+              <span>Consulter la fiche complète</span>
+            </button>
+          `;
+          card.querySelector('.codex-btn').addEventListener('click', () => {
+            openPedagogy(sp);
+          });
+          codexGrid.appendChild(card);
+        });
+      }
+
+      function switchTab(tab) {
+        gameState.activeTab = tab;
+        tabGameBtn.className = tab === 'game' 
+          ? 'px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 bg-bioTeal/15 text-bioTeal border border-bioTeal/30'
+          : 'px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition flex items-center gap-2';
+        
+        tabCodexBtn.className = tab === 'codex'
+          ? 'px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 bg-bioTeal/15 text-bioTeal border border-bioTeal/30'
+          : 'px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition flex items-center gap-2';
+
+        tabGuideBtn.className = tab === 'guide'
+          ? 'px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 bg-bioTeal/15 text-bioTeal border border-bioTeal/30'
+          : 'px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition flex items-center gap-2';
+
+        gameView.style.display = tab === 'game' ? 'flex' : 'none';
+        codexView.style.display = tab === 'codex' ? 'flex' : 'none';
+        guideView.style.display = tab === 'guide' ? 'flex' : 'none';
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function restart() {
+        gameState.currentIndex = 0;
+        gameState.solvedIds.clear();
+        victoryModal.classList.add('opacity-0', 'pointer-events-none');
+        closePedagogy();
+        renderAdultsGrid();
+        loadCurrentLarva();
+        renderDots();
+      }
+
+      // Écouteurs d'événements
+      hintBtn.addEventListener('click', () => {
+        ensureAudio();
+        const isHidden = hintContent.classList.contains('hidden');
+        if (isHidden) {
+          hintContent.classList.remove('hidden');
+          hintBtn.textContent = "Masquer l'indice";
+        } else {
+          hintContent.classList.add('hidden');
+          hintBtn.textContent = "Afficher l'indice";
+        }
+      });
+
+      tabGameBtn.addEventListener('click', () => switchTab('game'));
+      tabCodexBtn.addEventListener('click', () => switchTab('codex'));
+      tabGuideBtn.addEventListener('click', () => switchTab('guide'));
+
+      closeModalBtn.addEventListener('click', closePedagogy);
+      modalNextBtn.addEventListener('click', nextSpecies);
+      pedagogicalModal.addEventListener('click', (e) => {
+        if (e.target === pedagogicalModal) closePedagogy();
+      });
+
+      soundToggleBtn.addEventListener('click', () => {
+        ensureAudio();
+        const isMuted = audio.toggleMute();
+        updateSoundBtn(isMuted);
+      });
+
+      restartBtn.addEventListener('click', () => {
+        if (confirm("Voulez-vous réinitialiser votre progression d'exploration ?")) restart();
+      });
+
+      replayVictoryBtn.addEventListener('click', () => {
+        restart();
+        switchTab('game');
+      });
+
+      codexVictoryBtn.addEventListener('click', () => {
+        victoryModal.classList.add('opacity-0', 'pointer-events-none');
+        switchTab('codex');
+      });
+
+      document.addEventListener('click', () => ensureAudio(), { once: true });
+
+      // =======================================================================
+      // 4. CANVAS D'AMBIANCE ABYSSALE ANIMÉE
+      // =======================================================================
+      function initCanvas() {
+        const canvas = document.getElementById('canvasBackground');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let w, h;
+        function resize() {
+          w = canvas.width = window.innerWidth;
+          h = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const particles = [];
+        for (let i = 0; i < 60; i++) {
+          particles.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: 1.2 + Math.random() * 3,
+            vy: -0.2 - Math.random() * 0.45,
+            vx: (Math.random() - 0.5) * 0.35,
+            hue: Math.random() > 0.6 ? 175 : (Math.random() > 0.3 ? 190 : 265),
+            alpha: 0.2 + Math.random() * 0.6,
+            pulse: Math.random() * Math.PI * 2
+          });
+        }
+
+        let time = 0;
+        function animate() {
+          time += 0.015;
+          ctx.clearRect(0, 0, w, h);
+
+          // Dégradé abyssal nocturne (#0B132B vers #050510)
+          const bg = ctx.createLinearGradient(0, 0, 0, h);
+          bg.addColorStop(0, '#0B132B');
+          bg.addColorStop(0.5, '#070C1E');
+          bg.addColorStop(1, '#050510');
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, w, h);
+
+          // Caustiques de lumière sous-marine bioluminescente
+          ctx.save();
+          const cx1 = w * 0.3 + Math.sin(time * 0.8) * 50;
+          const g1 = ctx.createRadialGradient(cx1, h * 0.2, 40, cx1, h * 0.25, w * 0.45);
+          g1.addColorStop(0, 'rgba(0, 240, 255, 0.08)');
+          g1.addColorStop(1, 'transparent');
+          ctx.fillStyle = g1;
+          ctx.fillRect(0, 0, w, h);
+          ctx.restore();
+
+          // Particules de méroplancton avec halo lumineux
+          particles.forEach(p => {
+            p.y += p.vy;
+            p.x += p.vx;
+            p.pulse += 0.03;
+            if (p.y < -15) { p.y = h + 15; p.x = Math.random() * w; }
+            if (p.x < -15) p.x = w + 15;
+            if (p.x > w + 15) p.x = -15;
+
+            const a = p.alpha * (0.65 + 0.35 * Math.sin(p.pulse));
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(${p.hue}, 95%, 70%, ${a})`;
+            ctx.shadowBlur = 16;
+            ctx.shadowColor = `hsla(${p.hue}, 100%, 65%, ${a * 0.9})`;
+            ctx.fill();
+            ctx.restore();
+          });
+
+          requestAnimationFrame(animate);
+        }
+        animate();
+      }
+
+      // Initialisation
+      renderDots();
+      renderAdultsGrid();
+      loadCurrentLarva();
+      renderCodex();
+      initCanvas();
+    });
+  </script>
+</body>
+</html>
